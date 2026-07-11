@@ -13,6 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
@@ -30,7 +31,6 @@ import com.sf.tadami.R
 import com.sf.tadami.extension.api.ExtensionsApi
 import com.sf.tadami.navigation.HomeScreen
 import com.sf.tadami.navigation.graphs.onboarding.OnboardingRoutes
-import com.sf.tadami.notifications.cast.CastProxyService
 import com.sf.tadami.preferences.app.BasePreferences
 import com.sf.tadami.preferences.appearance.AppearancePreferences
 import com.sf.tadami.preferences.backup.BackupPreferences
@@ -38,8 +38,11 @@ import com.sf.tadami.preferences.library.LibraryPreferences
 import com.sf.tadami.preferences.model.rememberDataStoreState
 import com.sf.tadami.preferences.player.PlayerPreferences
 import com.sf.tadami.preferences.sources.SourcesPreferences
+import com.sf.tadami.ui.animeinfos.episode.cast.CastConnectionErrorDialog
 import com.sf.tadami.ui.animeinfos.episode.cast.channels.ErrorChannel
+import com.sf.tadami.ui.animeinfos.episode.cast.logCastConnectionError
 import com.sf.tadami.ui.animeinfos.episode.cast.setCastCustomChannel
+import com.sf.tadami.notifications.cast.CastControlService
 import com.sf.tadami.ui.tabs.browse.SourceManager
 import com.sf.tadami.ui.utils.setComposeContent
 import com.sf.tadami.utils.editPreference
@@ -56,6 +59,7 @@ class MainActivity : AppCompatActivity() {
     private var castSessionManagerListener: SessionManagerListener<CastSession>? = null
     private lateinit var castContext: CastContext
     private val errorChannel = ErrorChannel()
+    private val castConnectionError = mutableStateOf(false)
     private var ready = false
     private val dataStore: DataStore<Preferences> = Injekt.get()
     private val sourcesManager: SourceManager = Injekt.get()
@@ -127,6 +131,11 @@ class MainActivity : AppCompatActivity() {
 
             AppUpdaterScreen()
             ExtensionsCheckForUpdates()
+            if (castConnectionError.value) {
+                CastConnectionErrorDialog(
+                    onDismissRequest = { castConnectionError.value = false }
+                )
+            }
             HomeScreen(navController)
             LaunchedEffect(navController) {
                 if (isLaunch) {
@@ -168,6 +177,11 @@ class MainActivity : AppCompatActivity() {
             castSessionManagerListener!!,
             CastSession::class.java
         )
+        // addSessionManagerListener doesn't replay for an already-live session, so cover the case of
+        // resuming onto an existing cast session.
+        if (castContext.sessionManager.currentCastSession?.isConnected == true) {
+            CastControlService.startNow(this)
+        }
         super.onResume()
     }
 
@@ -191,6 +205,8 @@ class MainActivity : AppCompatActivity() {
             }
 
             override fun onSessionResumeFailed(session: CastSession, error: Int) {
+                logCastConnectionError("Session resume", error)
+                castConnectionError.value = true
                 onApplicationDisconnected()
             }
 
@@ -199,6 +215,8 @@ class MainActivity : AppCompatActivity() {
             }
 
             override fun onSessionStartFailed(session: CastSession, error: Int) {
+                logCastConnectionError("Session start", error)
+                castConnectionError.value = true
                 onApplicationDisconnected()
             }
 
@@ -210,13 +228,14 @@ class MainActivity : AppCompatActivity() {
             @OptIn(UnstableApi::class)
             private fun onApplicationConnected(session: CastSession) {
                 setCastCustomChannel(session, errorChannel)
-                CastProxyService.startNow(this@MainActivity)
                 this@MainActivity.castSession = session
+                // Start the control service as soon as any session connects (from any screen), not
+                // only when an episode is loaded. It owns TV episode switching and self-stops on end.
+                CastControlService.startNow(this@MainActivity)
             }
 
             @OptIn(UnstableApi::class)
             private fun onApplicationDisconnected() {
-                CastProxyService.stop(this@MainActivity)
                 this@MainActivity.castSession = null
             }
         }

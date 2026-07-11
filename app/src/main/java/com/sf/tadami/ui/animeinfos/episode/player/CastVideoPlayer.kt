@@ -100,6 +100,9 @@ fun CastVideoPlayer(
     var isPlaying by remember { mutableStateOf(castSession.remoteMediaClient?.isPlaying ?: false) }
 
     var debounceSeekJob: Job? by remember { mutableStateOf(null) }
+    // True while the user is dragging/tapping the timeline: gates the progress ticks so they don't
+    // clobber the user's position (isPlaying is unreliable — it's re-derived from the remote).
+    var isSeeking by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
 
     val idleLock by playerViewModel.idleLock.collectAsState()
@@ -171,9 +174,18 @@ fun CastVideoPlayer(
         }
 
         val progressListener = ProgressListener { progress, duration ->
-            if (castSession.isConnected && !castSession.isConnecting && isPlaying) {
-                currentTime = progress.coerceAtLeast(0)
-                totalDuration = duration.coerceAtLeast(0)
+            if (castSession.isConnected && !castSession.isConnecting) {
+                // Always refresh total time (the receiver now reports the real stream duration
+                // via its MediaStatus). Fall back to the client's streamDuration if the
+                // callback hands us 0. Current time stays gated on playback so an in-progress
+                // scrub/pause isn't clobbered by the 1s tick.
+                val resolvedDuration = duration.takeIf { it > 0 }
+                    ?: castSession.remoteMediaClient?.streamDuration
+                    ?: 0L
+                totalDuration = resolvedDuration.coerceAtLeast(0)
+                if (!isSeeking) {
+                    currentTime = progress.coerceAtLeast(0).coerceAtMost(totalDuration)
+                }
             }
         }
 
@@ -365,6 +377,7 @@ fun CastVideoPlayer(
                 currentTime = { currentTime },
                 bufferedPercentage = { 0 },
                 onSeekChanged = { timeMs: Float ->
+                    isSeeking = true
                     if (isPlaying) {
                         isPlaying = false
                         castSession.remoteMediaClient!!.pause()
@@ -374,8 +387,15 @@ fun CastVideoPlayer(
                 onSeekEnd = {
                     debounceSeekJob?.cancel()
                     debounceSeekJob = coroutineScope.launch {
-                        delay(500.milliseconds)
-                        castSession.remoteMediaClient!!.seek(getSeek(currentTime))
+                        delay(300.milliseconds)
+                        val pending = castSession.remoteMediaClient?.seek(getSeek(currentTime))
+                        // Re-enable progress-driven updates only once the receiver has applied the
+                        // seek, so its next tick doesn't snap the cursor back to the old position.
+                        if (pending != null) {
+                            pending.setResultCallback { isSeeking = false }
+                        } else {
+                            isSeeking = false
+                        }
                     }
                 },
                 onBack = {

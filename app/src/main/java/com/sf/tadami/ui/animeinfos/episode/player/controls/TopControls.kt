@@ -41,16 +41,15 @@ fun TopControl(
     onBackClicked: () -> Unit,
     onWebViewOpen : () -> Unit,
     onTooltipOpen : () -> Unit,
-    isTooltipSupported: Boolean = false
+    isTooltipSupported: Boolean
 ) {
-    val videoTitle = remember(title()) { title() }
-    val episodeNumber = remember(episode) { episode }
-
+    val videoTitle = remember(title) { title() }
+    val paddingMedium = MaterialTheme.padding.medium
     val context = LocalContext.current
 
     Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically,horizontalArrangement = Arrangement.Absolute.Left) {
 
-        IconButton(onClick = onBackClicked, size = 36.dp) {
+        IconButton(onClick = onBackClicked, size = 36.dp, padding = paddingMedium) {
             Icon(painter = painterResource(id = R.drawable.ic_back_arrow), contentDescription = "Go back",tint = MaterialTheme.colorScheme.onSurface)
         }
 
@@ -71,7 +70,7 @@ fun TopControl(
 
             )
             Text(
-                text = episodeNumber,
+                text = episode,
                 style = MaterialTheme.typography.bodySmall.copy(fontStyle = FontStyle.Italic),
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
@@ -84,7 +83,8 @@ fun TopControl(
         IconButton(
             onClick = onTooltipOpen,
             enabled = isTooltipSupported,
-            size = 36.dp
+            size = 36.dp,
+            padding = paddingMedium
         ) {
             Icon(
                 imageVector = Icons.Outlined.Info,
@@ -98,7 +98,8 @@ fun TopControl(
 
         IconButton(
             onClick = onWebViewOpen,
-            size = 36.dp
+            size = 36.dp,
+            padding = paddingMedium
         ) {
             Icon(
                 imageVector = Icons.Outlined.Public,
@@ -111,8 +112,11 @@ fun TopControl(
             factory = {
                 MediaRouteButton(context)
             },
-            update = {mediaButton ->
-                CastButtonFactory.setUpMediaRouteButton((context as EpisodeActivity).applicationContext, mediaButton)
+            update = { mediaButton ->
+                CastButtonFactory.setUpMediaRouteButton(
+                    (context as EpisodeActivity).applicationContext,
+                    mediaButton
+                )
             }
         )
     }

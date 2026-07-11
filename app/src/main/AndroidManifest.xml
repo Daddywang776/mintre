@@ -92,15 +92,14 @@
             android:value="com.sf.tadami.ui.animeinfos.episode.cast.CastOptionsProvider" />
 
         <service
-            android:name=".notifications.cast.CastProxyService"
-            android:exported="false"
-            android:foregroundServiceType="mediaPlayback"
-            />
-
-        <service
             android:name=".notifications.extensionsinstaller.ExtensionInstallService"
             android:exported="false"
             android:foregroundServiceType="shortService" />
+
+        <service
+            android:name=".notifications.cast.CastControlService"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback" />
 
         <service
             android:name="androidx.work.impl.foreground.SystemForegroundService"
@@ -108,6 +107,9 @@
             tools:node="merge" />
 
         <receiver android:name=".notifications.cast.CastReceiver" />
+        <receiver
+            android:name=".ui.animeinfos.episode.cast.CastMediaIntentReceiver"
+            android:exported="false" />
         <receiver android:name=".notifications.libraryupdate.LibraryUpdateReceiver" />
         <receiver android:name=".notifications.appupdate.AppUpdateReceiver" />
         <receiver android:name=".notifications.backup.BackupReceiver" />

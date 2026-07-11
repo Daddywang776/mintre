@@ -2,6 +2,7 @@ package com.sf.tadami.ui.animeinfos.episode.cast
 
 import android.annotation.SuppressLint
 import android.util.Log
+import com.google.android.gms.cast.CastStatusCodes
 import com.google.android.gms.cast.MediaStatus
 import com.google.android.gms.cast.framework.CastSession
 import com.sf.tadami.ui.animeinfos.episode.cast.channels.CustomCastChannel
@@ -32,6 +33,10 @@ fun getLocalIPAddress(): String? {
     }
 
     return null
+}
+
+fun logCastConnectionError(source: String, error: Int) {
+    Log.d("CastConnection", "$source failed with error $error (${CastStatusCodes.getStatusCodeString(error)})")
 }
 
 fun setCastCustomChannel(session : CastSession, channel : CustomCastChannel){
