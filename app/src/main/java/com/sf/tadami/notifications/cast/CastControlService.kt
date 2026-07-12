@@ -24,15 +24,19 @@ import com.sf.tadami.notifications.Notifications
 import com.sf.tadami.preferences.advanced.AdvancedPreferences
 import com.sf.tadami.preferences.player.PlayerPreferences
 import com.sf.tadami.source.model.StreamSource
+import com.sf.tadami.ui.animeinfos.episode.cast.CastProtocol
 import com.sf.tadami.ui.animeinfos.episode.cast.buildCastLoadRequest
 import com.sf.tadami.ui.animeinfos.episode.cast.channels.ControlChannel
+import com.sf.tadami.ui.animeinfos.episode.cast.channels.HandshakeChannel
 import com.sf.tadami.ui.animeinfos.episode.cast.channels.TvControlMessage
+import com.sf.tadami.ui.animeinfos.episode.cast.sendCastMessage
 import com.sf.tadami.ui.animeinfos.episode.cast.setCastCustomChannel
 import com.sf.tadami.ui.tabs.browse.SourceManager
 import com.sf.tadami.utils.getPreferencesGroup
 import io.reactivex.rxjava3.disposables.Disposable
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
@@ -60,6 +64,7 @@ class CastControlService : Service() {
     private lateinit var castContext: CastContext
     private lateinit var notifier: CastNotifier
     private val controlChannel = ControlChannel { msg -> onControl(msg) }
+    private val handshakeChannel = HandshakeChannel()
     private var fetchDisposable: Disposable? = null
     // Last seen media customData: at end of playback the media goes IDLE/FINISHED and mediaInfo
     // becomes null, so we fall back to this to keep episode switching working past the end.
@@ -122,6 +127,23 @@ class CastControlService : Service() {
 
     private fun bind(session: CastSession) {
         setCastCustomChannel(session, controlChannel)
+        setCastCustomChannel(session, handshakeChannel)
+        // Advertise our protocol versions at connect time (before any media load) so the receiver can
+        // force an update immediately if it's too old. Re-send shortly after in case the receiver was
+        // still starting up and missed the first message.
+        sendHandshake(session)
+        scope.launch {
+            delay(1500)
+            sendHandshake(session)
+        }
+    }
+
+    private fun sendHandshake(session: CastSession) {
+        val message = JSONObject()
+            .put("senderProtocol", CastProtocol.SENDER_VERSION)
+            .put("minReceiverProtocol", CastProtocol.MIN_RECEIVER_VERSION)
+            .toString()
+        sendCastMessage(session, HandshakeChannel.NAMESPACE, message)
     }
 
     private fun stopNow() {

@@ -44,6 +44,9 @@ fun buildCastLoadRequest(
     movieMetadata.putString(MediaMetadata.KEY_SUBTITLE, episode.name)
 
     val customData = JSONObject()
+        // Compatibility handshake: the receiver forces an app update when its protocol < minReceiverProtocol.
+        .put("minReceiverProtocol", CastProtocol.MIN_RECEIVER_VERSION)
+        .put("senderProtocol", CastProtocol.SENDER_VERSION)
         .put("userAgent", userAgent)
         .put("animeId", episode.animeId)
         .put("episodeId", episode.id)

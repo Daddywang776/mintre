@@ -70,7 +70,9 @@ import com.sf.tadami.ui.animeinfos.episode.cast.channels.CrashChannel
 import com.sf.tadami.ui.animeinfos.episode.cast.channels.ErrorChannel
 import com.sf.tadami.ui.animeinfos.episode.cast.channels.TvCrashLog
 import com.sf.tadami.notifications.cast.CastControlService
+import androidx.compose.runtime.collectAsState
 import com.sf.tadami.ui.animeinfos.episode.cast.CastConnectionErrorDialog
+import com.sf.tadami.ui.animeinfos.episode.cast.CastConnectionState
 import com.sf.tadami.ui.animeinfos.episode.cast.getLocalIPAddress
 import com.sf.tadami.ui.animeinfos.episode.cast.logCastConnectionError
 import com.sf.tadami.ui.animeinfos.episode.cast.setCastCustomChannel
@@ -131,7 +133,6 @@ class EpisodeActivity : AppCompatActivity() {
     private val errorChannel = ErrorChannel()
     private val crashChannel = CrashChannel { log -> onTvCrashReceived(log) }
     private val tvCrashLog = mutableStateOf<String?>(null)
-    private val castConnectionError = mutableStateOf(false)
     private var activeColorScheme: ColorScheme? = null
     private var pipReceiver: BroadcastReceiver? = null
     private var exoPlayer: ExoPlayer? = null
@@ -237,16 +238,17 @@ class EpisodeActivity : AppCompatActivity() {
                 Box {
                     val casting by remember(isCasting.value) { mutableStateOf(isCasting.value) }
 
-                    if (castConnectionError.value) {
+                    val castConnectionError by CastConnectionState.error.collectAsState()
+                    if (castConnectionError) {
                         CastConnectionErrorDialog(
-                            onDismissRequest = { castConnectionError.value = false }
+                            onDismissRequest = { CastConnectionState.clear() }
                         )
                     }
 
                     tvCrashLog.value?.let { crashText ->
                         AlertDialog(
                             onDismissRequest = { tvCrashLog.value = null },
-                            title = { Text("Tadami TV crashed") },
+                            title = { Text("Tadami Terebi crashed") },
                             text = { Text("The TV reported a crash. Export the error log?") },
                             confirmButton = {
                                 TextButton(onClick = {
@@ -449,7 +451,7 @@ class EpisodeActivity : AppCompatActivity() {
     /** A crash log pushed by the TV receiver: persist a copy and surface the export dialog. */
     private fun onTvCrashReceived(log: TvCrashLog) {
         val text = buildString {
-            appendLine("Tadami TV crash report")
+            appendLine("Tadami Terebi crash report")
             appendLine("Package: ${log.packageName}")
             appendLine("Version: ${log.versionName}")
             appendLine("Time: ${java.util.Date(log.timestamp)}")
@@ -691,7 +693,7 @@ class EpisodeActivity : AppCompatActivity() {
 
             override fun onSessionResumeFailed(session: CastSession, error: Int) {
                 logCastConnectionError("Session resume", error)
-                castConnectionError.value = true
+                CastConnectionState.notifyError()
                 onApplicationDisconnected()
             }
 
@@ -701,7 +703,7 @@ class EpisodeActivity : AppCompatActivity() {
 
             override fun onSessionStartFailed(session: CastSession, error: Int) {
                 logCastConnectionError("Session start", error)
-                castConnectionError.value = true
+                CastConnectionState.notifyError()
                 onApplicationDisconnected()
             }
 

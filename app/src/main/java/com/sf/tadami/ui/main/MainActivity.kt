@@ -13,7 +13,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
@@ -39,6 +38,7 @@ import com.sf.tadami.preferences.model.rememberDataStoreState
 import com.sf.tadami.preferences.player.PlayerPreferences
 import com.sf.tadami.preferences.sources.SourcesPreferences
 import com.sf.tadami.ui.animeinfos.episode.cast.CastConnectionErrorDialog
+import com.sf.tadami.ui.animeinfos.episode.cast.CastConnectionState
 import com.sf.tadami.ui.animeinfos.episode.cast.channels.ErrorChannel
 import com.sf.tadami.ui.animeinfos.episode.cast.logCastConnectionError
 import com.sf.tadami.ui.animeinfos.episode.cast.setCastCustomChannel
@@ -59,7 +59,6 @@ class MainActivity : AppCompatActivity() {
     private var castSessionManagerListener: SessionManagerListener<CastSession>? = null
     private lateinit var castContext: CastContext
     private val errorChannel = ErrorChannel()
-    private val castConnectionError = mutableStateOf(false)
     private var ready = false
     private val dataStore: DataStore<Preferences> = Injekt.get()
     private val sourcesManager: SourceManager = Injekt.get()
@@ -131,9 +130,10 @@ class MainActivity : AppCompatActivity() {
 
             AppUpdaterScreen()
             ExtensionsCheckForUpdates()
-            if (castConnectionError.value) {
+            val castConnectionError by CastConnectionState.error.collectAsState()
+            if (castConnectionError) {
                 CastConnectionErrorDialog(
-                    onDismissRequest = { castConnectionError.value = false }
+                    onDismissRequest = { CastConnectionState.clear() }
                 )
             }
             HomeScreen(navController)
@@ -206,7 +206,7 @@ class MainActivity : AppCompatActivity() {
 
             override fun onSessionResumeFailed(session: CastSession, error: Int) {
                 logCastConnectionError("Session resume", error)
-                castConnectionError.value = true
+                CastConnectionState.notifyError()
                 onApplicationDisconnected()
             }
 
@@ -216,7 +216,7 @@ class MainActivity : AppCompatActivity() {
 
             override fun onSessionStartFailed(session: CastSession, error: Int) {
                 logCastConnectionError("Session start", error)
-                castConnectionError.value = true
+                CastConnectionState.notifyError()
                 onApplicationDisconnected()
             }
 
