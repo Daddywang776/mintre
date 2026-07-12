@@ -25,8 +25,8 @@ android {
 
     defaultConfig {
         applicationId = "com.sf.tadami"
-        versionCode = 48
-        versionName = "1.8.4"
+        versionCode = 49
+        versionName = "1.9.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "BUILD_DATE", "\"${getBuildDate()}\"")
@@ -80,6 +80,14 @@ android {
         }
     }
 
+}
+
+androidComponents {
+    onVariants { variant ->
+        variant.outputs.forEach { output ->
+            output.outputFileName.set("tadami.apk")
+        }
+    }
 }
 
 fun getBuildDate(): String {
