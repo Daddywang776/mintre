@@ -74,11 +74,10 @@ android {
     }
     sourceSets {
         getByName("main") {
-            res.srcDirs("src/main/res", "src/main/res/chromecast-res")
+            res.srcDirs.set(listOf("src/main/res", "src/main/res/chromecast-res"))
         }
     }
 }
-
 
 androidComponents {
     onVariants { variant ->
@@ -87,7 +86,6 @@ androidComponents {
         }
     }
 }
-
 fun getBuildDate(): String {
     val date = Date()
     val format = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'")
