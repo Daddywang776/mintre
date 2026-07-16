@@ -34,29 +34,16 @@ android {
             useSupportLibrary = true
         }
     }
-
-    signingConfigs {
-        create("release"){
-            storeFile = file(env.SIGNING_KEY.value)
-            storePassword = env.KEY_STORE_PASSWORD.value
-            keyAlias = env.ALIAS.value
-            keyPassword = env.KEY_STORE_PASSWORD.value
-        }
-    }
-
-    buildTypes {
-        named("debug"){
+buildTypes {
+        named("debug") {
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-DEBUG"
-            isDebuggable = true
-            signingConfig = signingConfigs.getByName("release")
-            proguardFiles("proguard-android-optimize.txt", "proguard-rules.pro")
+            isMinifiedEnabled = false
+            isShrinkResources = false
         }
         named("release") {
-            isDebuggable = false
             isMinifyEnabled = true
             isShrinkResources = true
-            signingConfig = signingConfigs.getByName("release")
             proguardFiles("proguard-android-optimize.txt", "proguard-rules.pro")
         }
     }
@@ -74,7 +61,7 @@ android {
     }
     sourceSets {
         getByName("main") {
-            res.srcDirs = listOf("src/main/res", "src/main/res/chromecast-res")
+            res.srcDirs("src/main/res", "src/main/res/chromecast-res")
         }
     }
 }
