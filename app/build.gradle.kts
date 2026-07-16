@@ -61,7 +61,7 @@ buildTypes {
     }
     sourceSets {
         getByName("main") {
-            res.assets.directories.add(file("src/main/res/chromecast-res"))
+            res.srcDir("src/main/res/chromecast-res")
         }
     }
 }
