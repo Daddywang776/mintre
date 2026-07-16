@@ -74,13 +74,11 @@ android {
     }
     sourceSets {
         getByName("main") {
-            res {
-                srcDirs("src\\main\\res", "src\\main\\res\\chromecast-res")
-            }
+            res.srcDirs("src/main/res", "src/main/res/chromecast-res")
         }
     }
-
 }
+
 
 androidComponents {
     onVariants { variant ->
