@@ -38,7 +38,7 @@ buildTypes {
         named("debug") {
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-DEBUG"
-            isMinifiedEnabled = false
+            isMinifyEnabled = false
             isShrinkResources = false
         }
         named("release") {
@@ -61,7 +61,7 @@ buildTypes {
     }
     sourceSets {
         getByName("main") {
-            res.srcDirs("src/main/res", "src/main/res/chromecast-res")
+            res.assets.directories.add(file("src/main/res/chromecast-res"))
         }
     }
 }
