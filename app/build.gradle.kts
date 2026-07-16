@@ -74,7 +74,7 @@ android {
     }
     sourceSets {
         getByName("main") {
-            res.srcDirs = listOf("src/main/res", "src/main/res/chromecast-res"))
+            res.srcDirs = listOf("src/main/res", "src/main/res/chromecast-res")
         }
     }
 }
