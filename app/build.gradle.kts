@@ -69,7 +69,7 @@ buildTypes {
 androidComponents {
     onVariants { variant ->
         variant.outputs.forEach { output ->
-            output.outputFileName.set("tadami.apk")
+            output.outputFileName.set("mintre.apk")
         }
     }
 }
